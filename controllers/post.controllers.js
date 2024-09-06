@@ -1,19 +1,31 @@
 // controllers/post.controllers.js
 const Post = require("../models/post.model");
+const Tag = require("../models/tag.model");
 
-// Create a new post
+// Create a new post with tags
 const createPost = async (req, res) => {
   try {
     const { title, body, categories, tags } = req.body;
     const thumbnail = req.file ? req.file.path : ""; // Image path from Multer
     const author = req.user.userID; // Authenticated user ID from token
 
+    // Ensure tags exist in the Tag collection
+    const tagIds = await Promise.all(
+      tags.map(async (tag) => {
+        let existingTag = await Tag.findOne({ name: tag });
+        if (!existingTag) {
+          existingTag = await new Tag({ name: tag }).save();
+        }
+        return existingTag._id;
+      })
+    );
+
     const post = new Post({
       title,
       body,
       thumbnail,
       categories,
-      tags,
+      tags: tagIds,
       author,
     });
 
