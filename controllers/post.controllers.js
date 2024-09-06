@@ -134,9 +134,6 @@ const deletePost = async (req, res) => {
   }
 };
 
-// controllers/post.controllers.js (Updated)
-const Post = require("../models/post.model");
-
 // Fetch a single post with comments
 const getPostWithComments = async (req, res) => {
   try {
@@ -216,10 +213,78 @@ const getPopularPosts = async (req, res) => {
   }
 };
 
+// Search posts by title or body
+const searchPosts = async (req, res) => {
+  try {
+    const { keyword } = req.query; // Get the search keyword from the query parameters
+
+    if (!keyword) {
+      return res
+        .status(400)
+        .json({ status: 400, error: "Keyword is required for searching" });
+    }
+
+    // Search for posts where the title or body contains the keyword (case insensitive)
+    const posts = await Post.find({
+      $or: [
+        { title: { $regex: keyword, $options: "i" } }, // Case insensitive search for title
+        { body: { $regex: keyword, $options: "i" } }, // Case insensitive search for body
+      ],
+    }).populate("author", "name");
+
+    res.status(200).json({ status: 200, data: posts });
+  } catch (error) {
+    console.error(error);
+    res.status(500).json({ status: 500, error: "Internal Server Error" });
+  }
+};
+
+// Get posts with filtering and pagination
+const getFilteredPosts = async (req, res) => {
+  try {
+    const { category, tag, page = 1, limit = 10 } = req.query; // Get query parameters for filtering and pagination
+
+    const filter = {};
+
+    if (category) {
+      filter.categories = category; // Filter by category
+    }
+
+    if (tag) {
+      filter.tags = tag; // Filter by tag
+    }
+
+    const posts = await Post.find(filter)
+      .populate("author", "name")
+      .skip((page - 1) * limit) // Implement pagination
+      .limit(parseInt(limit)) // Limit the number of posts per page
+      .sort({ createdAt: -1 }); // Sort by creation date, most recent first
+
+    const totalPosts = await Post.countDocuments(filter); // Total number of posts for pagination info
+    const totalPages = Math.ceil(totalPosts / limit); // Calculate total number of pages
+
+    res
+      .status(200)
+      .json({
+        status: 200,
+        data: posts,
+        totalPosts,
+        totalPages,
+        currentPage: parseInt(page),
+      });
+  } catch (error) {
+    console.error(error);
+    res.status(500).json({ status: 500, error: "Internal Server Error" });
+  }
+};
+
 module.exports = {
   createPost,
   getPosts,
   updatePost,
   deletePost,
   getPostWithComments,
+  likePost,
+  searchPosts,
+  getFilteredPosts,
 };

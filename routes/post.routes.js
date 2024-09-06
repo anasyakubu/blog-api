@@ -12,6 +12,11 @@ const {
   getPopularPosts,
   getPostWithComments,
 } = require("../controllers/post.controllers");
+//
+const {
+  searchPosts,
+  getFilteredPosts,
+} = require("../controllers/post.controllers");
 
 // Routes for managing posts
 router.post("/posts", requireAuth, upload.single("thumbnail"), createPost); // Create post
@@ -23,5 +28,10 @@ router.delete("/posts/:id", requireAuth, deletePost); // Delete post
 router.post("/posts/:postId/like", requireAuth, likePost);
 // Route to fetch popular posts based on likes and comments
 router.get("/posts/popular", getPopularPosts);
+// Route to search for posts by keyword
+router.get("/search", searchPosts);
+
+// Route to get posts with filtering and pagination
+router.get("/posts", getFilteredPosts);
 
 module.exports = router;
