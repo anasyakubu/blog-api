@@ -1,3 +1,4 @@
+// controllers/user.controllers.js
 const User = require("../models/user.model");
 const { hashPassword, comparePassword } = require("../helpers/auth");
 const jwt = require("jsonwebtoken");
@@ -20,37 +21,41 @@ const getUser = (req, res) => {
 // Register Endpoint
 const registerUser = async (req, res) => {
   try {
-    const { name, email, password } = req.body;
-    // check if name was entered
-    if (!name) {
-      return res.status(400).json({ status: 400, error: "Name is required" });
+    const { name, email, password, role } = req.body;
+    // Validate input fields
+    if (!name || !email || !password) {
+      return res
+        .status(400)
+        .json({ status: 400, error: "All fields are required" });
     }
-    if (!email) {
-      return res.status(400).json({ status: 400, error: "Email is required" });
-    }
-
-    // check if password is good
-    if (!password || password.length < 4) {
+    if (password.length < 4) {
       return res.status(400).json({
         status: 400,
-        error: "Password is required and it should be 4 characters long",
+        error: "Password should be at least 4 characters long",
       });
     }
-    // check email exist
+
+    // Check if email exists
     const exist = await User.findOne({ email });
     if (exist) {
       return res
         .status(400)
-        .json({ status: 400, error: "Email Already Taken" });
+        .json({ status: 400, error: "Email already taken" });
     }
 
     const hashedPassword = await hashPassword(password);
-    // create user in db
-    const user = await User.create({ name, email, password: hashedPassword });
-    // return res.status(201);
-    return res.status(201).send(user);
+
+    // Create user in the database
+    const user = await User.create({
+      name,
+      email,
+      password: hashedPassword,
+      role,
+    });
+    return res.status(201).json(user);
   } catch (error) {
     console.log(error);
+    return res.status(500).json({ error: "Internal Server Error" });
   }
 };
 
@@ -58,34 +63,28 @@ const registerUser = async (req, res) => {
 const loginUser = async (req, res) => {
   try {
     const { email, password } = req.body;
-    // Check Empty Field
-    if (!email) {
-      return res.status(400).json({ status: 400, error: "Email is required" });
-    }
-    // check if password is good
-    if (!password) {
+    // Validate input fields
+    if (!email || !password) {
       return res
         .status(400)
-        .json({ status: 400, error: "Password is required" });
+        .json({ status: 400, error: "Email and password are required" });
     }
 
-    // check if user exists
+    // Check if user exists
     const user = await User.findOne({ email });
-
     if (!user) {
-      return res.status(400).json({ status: 400, error: "No User Found" });
+      return res.status(400).json({ status: 400, error: "No user found" });
     }
 
     const match = await comparePassword(password, user.password);
     if (!match) {
-      // throw new Error("Invalid credentials!");
       return res
         .status(400)
         .json({ status: 400, error: "Invalid credentials" });
     }
 
     const token = jwt.sign(
-      { email: user.email, userID: user._id },
+      { email: user.email, userID: user._id, role: user.role }, // Include role in token
       process.env.JWT_SECRET,
       { expiresIn: "10hr" }
     );
@@ -93,10 +92,11 @@ const loginUser = async (req, res) => {
     return res.status(200).json({
       status: 200,
       message: "User logged in successfully!",
-      token: token,
+      token,
       userID: user._id,
       name: user.name,
       email: user.email,
+      role: user.role,
     });
   } catch (error) {
     console.log(error);

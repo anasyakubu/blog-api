@@ -1,8 +1,7 @@
+// routes/user.routes.js
 const express = require("express");
 const router = express.Router();
-const { requireAuth } = require("../middleware/authMiddleware");
-const cros = require("cors");
-const { test, getProfile } = require("../controllers/auth.controllers");
+const { requireAuth, requireAdmin } = require("../middleware/authMiddleware");
 const {
   registerUser,
   loginUser,
@@ -10,13 +9,12 @@ const {
   getUser,
 } = require("../controllers/user.controllers");
 
-router.get("/", test);
-// Login $ register
-router.post("/signup", registerUser);
-router.get("/user/list", userList);
-router.get("/user/get/:id", getUser);
-router.post("/login", loginUser);
-// profile
-router.get("/profile", requireAuth, getProfile);
+// Public Routes
+router.post("/auth/register", registerUser);
+router.post("/auth/login", loginUser);
+
+// Protected Routes
+router.get("/users/list", requireAuth, requireAdmin, userList); // Only admin can access
+router.get("/user/get/:id", requireAuth, getUser); // Authenticated users can access their profile
 
 module.exports = router;
