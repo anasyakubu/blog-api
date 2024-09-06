@@ -34,7 +34,7 @@ router.delete("/posts/:id", requireAuth, deletePost); // Delete post
 // Route to like or unlike a post
 router.post("/posts/:postId/like", requireAuth, likePost);
 // Route to fetch popular posts based on likes and comments
-router.get("/posts/popular", getPopularPosts);
+// router.get("/posts/popular", getPopularPosts);
 // Route to search for posts by keyword
 router.get("/search", searchPosts);
 
