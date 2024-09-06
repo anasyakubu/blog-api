@@ -1,6 +1,7 @@
 // controllers/post.controllers.js
 const Post = require("../models/post.model");
 const Tag = require("../models/tag.model");
+const Comment = require("../models/comment.model");
 
 // Create a new post with tags
 const createPost = async (req, res) => {
@@ -157,6 +158,58 @@ const getPostWithComments = async (req, res) => {
     }
 
     res.status(200).json({ status: 200, data: post });
+  } catch (error) {
+    console.error(error);
+    res.status(500).json({ status: 500, error: "Internal Server Error" });
+  }
+};
+
+// Like a post
+const likePost = async (req, res) => {
+  try {
+    const { postId } = req.params; // Get the post ID from the request params
+    const userId = req.user.userID; // Authenticated user ID from the token
+
+    const post = await Post.findById(postId);
+
+    if (!post) {
+      return res.status(404).json({ status: 404, error: "Post not found" });
+    }
+
+    // Check if the user already liked the post
+    const alreadyLiked = post.likes.includes(userId);
+    if (alreadyLiked) {
+      // If already liked, remove the like
+      post.likes = post.likes.filter((like) => like.toString() !== userId);
+    } else {
+      // Otherwise, add the like
+      post.likes.push(userId);
+    }
+
+    await post.save();
+
+    res.status(200).json({
+      status: 200,
+      message: alreadyLiked ? "Post unliked" : "Post liked",
+      data: post,
+    });
+  } catch (error) {
+    console.error(error);
+    res.status(500).json({ status: 500, error: "Internal Server Error" });
+  }
+};
+
+// Get popular posts based on likes and comments
+const getPopularPosts = async (req, res) => {
+  try {
+    // Fetch posts sorted by the number of likes and comments in descending order
+    const popularPosts = await Post.find({})
+      .populate("author", "name")
+      .populate("comments")
+      .sort({ "likes.length": -1, "comments.length": -1 }) // Sort by likes and comments
+      .limit(10); // Limit to top 10 popular posts
+
+    res.status(200).json({ status: 200, data: popularPosts });
   } catch (error) {
     console.error(error);
     res.status(500).json({ status: 500, error: "Internal Server Error" });
