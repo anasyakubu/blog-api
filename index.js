@@ -33,6 +33,12 @@ app.use(cors(corsOptions));
 app.use("/", require("./routes/auth.routes"));
 // post
 app.use("/", require("./routes/post.routes"));
+// tag
+app.use("/", require("./routes/tag.routes"));
+// category
+app.use("/", require("./routes/category.routes"));
+// comment
+app.use("/", require("./routes/comment.routes"));
 
 const PORT = 9000;
 app.listen(PORT, () => console.log(`Server is starting on port ${PORT}`));

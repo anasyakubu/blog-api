@@ -133,4 +133,40 @@ const deletePost = async (req, res) => {
   }
 };
 
-module.exports = { createPost, getPosts, updatePost, deletePost };
+// controllers/post.controllers.js (Updated)
+const Post = require("../models/post.model");
+
+// Fetch a single post with comments
+const getPostWithComments = async (req, res) => {
+  try {
+    const { postId } = req.params;
+
+    const post = await Post.findById(postId)
+      .populate({
+        path: "comments",
+        populate: {
+          path: "replies",
+          model: "Comment",
+          populate: { path: "author", model: "User", select: "name" },
+        },
+      })
+      .populate("author", "name");
+
+    if (!post) {
+      return res.status(404).json({ status: 404, error: "Post not found" });
+    }
+
+    res.status(200).json({ status: 200, data: post });
+  } catch (error) {
+    console.error(error);
+    res.status(500).json({ status: 500, error: "Internal Server Error" });
+  }
+};
+
+module.exports = {
+  createPost,
+  getPosts,
+  updatePost,
+  deletePost,
+  getPostWithComments,
+};
