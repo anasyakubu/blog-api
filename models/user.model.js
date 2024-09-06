@@ -7,11 +7,11 @@ const userSchema = new Schema(
     name: { type: String, required: true },
     email: { type: String, required: true, unique: true },
     password: { type: String, required: true },
-    role: { type: String, enum: ["user", "admin"], default: "user" }, // Added role field
+    role: { type: String, enum: ["user", "admin"], default: "user" }, // New field for role
   },
   { timestamps: true }
 );
 
-const UserModel = mongoose.model("User", userSchema);
+const User = mongoose.model("User", userSchema);
 
-module.exports = UserModel;
+module.exports = User;

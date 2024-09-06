@@ -2,6 +2,7 @@
 const Post = require("../models/post.model");
 const Tag = require("../models/tag.model");
 const Comment = require("../models/comment.model");
+const User = require("../models/user.model");
 
 // Create a new post with tags
 const createPost = async (req, res) => {
@@ -263,15 +264,93 @@ const getFilteredPosts = async (req, res) => {
     const totalPosts = await Post.countDocuments(filter); // Total number of posts for pagination info
     const totalPages = Math.ceil(totalPosts / limit); // Calculate total number of pages
 
+    res.status(200).json({
+      status: 200,
+      data: posts,
+      totalPosts,
+      totalPages,
+      currentPage: parseInt(page),
+    });
+  } catch (error) {
+    console.error(error);
+    res.status(500).json({ status: 500, error: "Internal Server Error" });
+  }
+};
+
+// Approve or reject a post (Admin action)
+const approveOrRejectPost = async (req, res) => {
+  try {
+    const { postId, action } = req.body; // action should be "approve" or "reject"
+
+    if (!postId || !action) {
+      return res
+        .status(400)
+        .json({ status: 400, error: "Post ID and action are required" });
+    }
+
+    const post = await Post.findById(postId);
+    if (!post) {
+      return res.status(404).json({ status: 404, error: "Post not found" });
+    }
+
+    if (action === "approve") {
+      post.status = "approved";
+    } else if (action === "reject") {
+      post.status = "rejected";
+    } else {
+      return res.status(400).json({ status: 400, error: "Invalid action" });
+    }
+
+    await post.save();
+    res.status(200).json({
+      status: 200,
+      message: `Post has been ${action}ed successfully!`,
+    });
+  } catch (error) {
+    console.error(error);
+    res.status(500).json({ status: 500, error: "Internal Server Error" });
+  }
+};
+
+// Delete any post (Admin action)
+const deleteAnyPost = async (req, res) => {
+  try {
+    const { postId } = req.params;
+    const post = await Post.findById(postId);
+
+    if (!post) {
+      return res.status(404).json({ status: 404, error: "Post not found" });
+    }
+
+    await post.remove();
     res
       .status(200)
-      .json({
-        status: 200,
-        data: posts,
-        totalPosts,
-        totalPages,
-        currentPage: parseInt(page),
+      .json({ status: 200, message: "Post deleted successfully!" });
+  } catch (error) {
+    console.error(error);
+    res.status(500).json({ status: 500, error: "Internal Server Error" });
+  }
+};
+
+// Delete user's own post or comment (User or Admin action)
+const deleteOwnPostOrComment = async (req, res) => {
+  try {
+    const { postId } = req.params;
+    const userId = req.user.id;
+
+    const post = await Post.findOne({ _id: postId, author: userId });
+
+    if (!post) {
+      return res.status(403).json({
+        status: 403,
+        error: "You are not authorized to delete this post!",
       });
+    }
+
+    await post.remove();
+    res
+      .status(200)
+      .json({ status: 200, message: "Post deleted successfully!" });
   } catch (error) {
     console.error(error);
     res.status(500).json({ status: 500, error: "Internal Server Error" });
@@ -287,4 +366,7 @@ module.exports = {
   likePost,
   searchPosts,
   getFilteredPosts,
+  approveOrRejectPost,
+  deleteAnyPost,
+  deleteOwnPostOrComment,
 };
